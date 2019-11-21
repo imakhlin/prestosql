@@ -75,29 +75,11 @@ public class TestElasticsearchIntegrationSmokeTest
     }
 
     @Test
+    @Override
     public void testSelectAll()
     {
         // List columns explicitly, as there's no defined order in Elasticsearch
         assertQuery("SELECT orderkey, custkey, orderstatus, totalprice, orderdate, orderpriority, clerk, shippriority, comment  FROM orders");
-    }
-
-    @Test
-    public void testRangePredicate()
-    {
-        // List columns explicitly, as there's no defined order in Elasticsearch
-        assertQuery("" +
-                "SELECT orderkey, custkey, orderstatus, totalprice, orderdate, orderpriority, clerk, shippriority, comment " +
-                "FROM orders " +
-                "WHERE orderkey BETWEEN 10 AND 50");
-    }
-
-    @Test
-    public void testMultipleRangesPredicate()
-    {
-        assertQuery("" +
-                "SELECT orderkey, custkey, orderstatus, totalprice, orderdate, orderpriority, clerk, shippriority, comment " +
-                "FROM orders " +
-                "WHERE orderkey BETWEEN 10 AND 50 OR orderkey BETWEEN 100 AND 150");
     }
 
     @Test
@@ -320,6 +302,30 @@ public class TestElasticsearchIntegrationSmokeTest
                 .build();
 
         assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testMixedCase()
+    {
+        String indexName = "mixed_case";
+        index(indexName, ImmutableMap.<String, Object>builder()
+                .put("Name", "john")
+                .put("AGE", 32)
+                .build());
+
+        embeddedElasticsearchNode.getClient()
+                .admin()
+                .indices()
+                .refresh(refreshRequest(indexName))
+                .actionGet();
+
+        assertQuery(
+                "SELECT name, age FROM mixed_case",
+                "VALUES ('john', 32)");
+
+        assertQuery(
+                "SELECT name, age FROM mixed_case WHERE name = 'john'",
+                "VALUES ('john', 32)");
     }
 
     @Test

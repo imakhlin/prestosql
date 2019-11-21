@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.prestosql.execution.sessionpropertymanagers;
+package io.prestosql.plugin.session.db;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,12 +29,6 @@ import io.prestosql.SystemSessionProperties;
 import io.prestosql.execution.QueryIdGenerator;
 import io.prestosql.execution.QueryManagerConfig;
 import io.prestosql.metadata.SessionPropertyManager;
-import io.prestosql.plugin.session.db.DbSessionPropertyManager;
-import io.prestosql.plugin.session.db.DbSessionPropertyManagerConfig;
-import io.prestosql.plugin.session.db.DbSpecsProvider;
-import io.prestosql.plugin.session.db.SessionPropertiesDao;
-import io.prestosql.plugin.session.db.SessionPropertiesDaoProvider;
-import io.prestosql.plugin.session.db.TestingDbSpecsProvider;
 import io.prestosql.server.SessionPropertyDefaults;
 import io.prestosql.spi.Plugin;
 import io.prestosql.spi.resourcegroups.SessionPropertyConfigurationManagerContext;
@@ -54,15 +48,15 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static io.airlift.configuration.ConfigBinder.configBinder;
+import static io.airlift.testing.Closeables.closeQuietly;
 import static io.prestosql.testing.TestingSession.DEFAULT_TIME_ZONE_KEY;
 import static java.util.Collections.emptyMap;
 import static java.util.Locale.ENGLISH;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotEquals;
 import static org.weakref.jmx.guice.ExportBinder.newExporter;
 
 public class TestDbSessionPropertyManagerIntegration
@@ -73,7 +67,7 @@ public class TestDbSessionPropertyManagerIntegration
     private static final Duration EXAMPLE_VALUE_DEFAULT = new QueryManagerConfig().getQueryMaxCpuTime();
     private static final Duration EXAMPLE_VALUE_CONFIGURED = new Duration(50000, DAYS);
 
-    TestingMySqlServer testingMySqlServer;
+    private TestingMySqlServer testingMySqlServer;
     private SessionPropertiesDao dao;
     private static final String MYSQL_TEST_USER = "testuser";
     private static final String MYSQL_TEST_PASSWORD = "testpassword";
@@ -86,10 +80,11 @@ public class TestDbSessionPropertyManagerIntegration
         assertEquals(session.getSystemProperties(), emptyMap());
 
         Duration sessionValue = session.getSystemProperty(EXAMPLE_PROPERTY, Duration.class);
-        assertEquals(EXAMPLE_VALUE_DEFAULT, sessionValue, "sessionValue is not equal to EXAMPLE_VALUE_DEFAULT");
+        assertEquals(sessionValue, EXAMPLE_VALUE_DEFAULT);
+        assertNotEquals(EXAMPLE_VALUE_DEFAULT, EXAMPLE_VALUE_CONFIGURED);
 
         DistributedQueryRunner queryRunner = DistributedQueryRunner.builder(session).build();
-        queryRunner.installPlugin(new TestSessionPropertyConfigurationManagerPlugin());
+        queryRunner.installPlugin(new TestingSessionPropertyConfigurationManagerPlugin());
         return queryRunner;
     }
 
@@ -98,15 +93,14 @@ public class TestDbSessionPropertyManagerIntegration
             throws Exception
     {
         testingMySqlServer = new TestingMySqlServer(MYSQL_TEST_USER, MYSQL_TEST_PASSWORD, MYSQL_TEST_DATABASE);
-        assertFalse(EXAMPLE_VALUE_CONFIGURED.equals(EXAMPLE_VALUE_DEFAULT));
         queryRunner = createQueryRunner();
     }
 
     @AfterClass(alwaysRun = true)
     public void destroy()
     {
-        testingMySqlServer.close();
-        queryRunner.close();
+        closeQuietly(testingMySqlServer);
+        closeQuietly(queryRunner);
     }
 
     @BeforeMethod
@@ -185,17 +179,17 @@ public class TestDbSessionPropertyManagerIntegration
                 .setUserAgent("agent");
     }
 
-    static class TestSessionPropertyConfigurationManagerPlugin
+    private static class TestingSessionPropertyConfigurationManagerPlugin
             implements Plugin
     {
         @Override
         public Iterable<SessionPropertyConfigurationManagerFactory> getSessionPropertyConfigurationManagerFactories()
         {
-            return ImmutableList.of(new TestDbSessionPropertyManagerFactory());
+            return ImmutableList.of(new TestingDbSessionPropertyManagerFactory());
         }
     }
 
-    static class TestDbSessionPropertyManagerModule
+    private static class TestingDbSessionPropertyManagerModule
             implements Module
     {
         @Override
@@ -209,7 +203,7 @@ public class TestDbSessionPropertyManagerIntegration
         }
     }
 
-    static class TestDbSessionPropertyManagerFactory
+    private static class TestingDbSessionPropertyManagerFactory
             implements SessionPropertyConfigurationManagerFactory
     {
         @Override
@@ -221,23 +215,17 @@ public class TestDbSessionPropertyManagerIntegration
         @Override
         public SessionPropertyConfigurationManager create(Map<String, String> config, SessionPropertyConfigurationManagerContext context)
         {
-            try {
-                Bootstrap app = new Bootstrap(
-                        new JsonModule(),
-                        new TestDbSessionPropertyManagerModule());
+            Bootstrap app = new Bootstrap(
+                    new JsonModule(),
+                    new TestingDbSessionPropertyManagerModule());
 
-                Injector injector = app
-                        .strictConfig()
-                        .doNotInitializeLogging()
-                        .setRequiredConfigurationProperties(config)
-                        .quiet()
-                        .initialize();
-                return injector.getInstance(DbSessionPropertyManager.class);
-            }
-            catch (Exception e) {
-                throwIfUnchecked(e);
-                throw new RuntimeException(e);
-            }
+            Injector injector = app
+                    .strictConfig()
+                    .doNotInitializeLogging()
+                    .setRequiredConfigurationProperties(config)
+                    .quiet()
+                    .initialize();
+            return injector.getInstance(DbSessionPropertyManager.class);
         }
     }
 }

@@ -5,7 +5,11 @@
     <parent>
         <groupId>io.prestosql</groupId>
         <artifactId>presto-root</artifactId>
+<<<<<<< HEAD
         <version>323</version>
+=======
+        <version>325</version>
+>>>>>>> 325
     </parent>
 
     <artifactId>presto-array</artifactId>

@@ -283,9 +283,9 @@ public abstract class AbstractTestHive
     private static final Type ARRAY_TYPE = arrayType(createUnboundedVarcharType());
     private static final Type MAP_TYPE = mapType(createUnboundedVarcharType(), BIGINT);
     private static final Type ROW_TYPE = rowType(ImmutableList.of(
-            new NamedTypeSignature(Optional.of(new RowFieldName("f_string", false)), createUnboundedVarcharType().getTypeSignature()),
-            new NamedTypeSignature(Optional.of(new RowFieldName("f_bigint", false)), BIGINT.getTypeSignature()),
-            new NamedTypeSignature(Optional.of(new RowFieldName("f_boolean", false)), BOOLEAN.getTypeSignature())));
+            new NamedTypeSignature(Optional.of(new RowFieldName("f_string")), createUnboundedVarcharType().getTypeSignature()),
+            new NamedTypeSignature(Optional.of(new RowFieldName("f_bigint")), BIGINT.getTypeSignature()),
+            new NamedTypeSignature(Optional.of(new RowFieldName("f_boolean")), BOOLEAN.getTypeSignature())));
 
     private static final List<ColumnMetadata> CREATE_TABLE_COLUMNS = ImmutableList.<ColumnMetadata>builder()
             .add(new ColumnMetadata("id", BIGINT))
@@ -356,8 +356,8 @@ public abstract class AbstractTestHive
     private static RowType toRowType(List<ColumnMetadata> columns)
     {
         return rowType(columns.stream()
-                .map(col -> new NamedTypeSignature(Optional.of(new RowFieldName(format("f_%s", col.getName()), false)), col.getType().getTypeSignature()))
-                .collect(toList()));
+                .map(col -> new NamedTypeSignature(Optional.of(new RowFieldName(format("f_%s", col.getName()))), col.getType().getTypeSignature()))
+                .collect(toImmutableList()));
     }
 
     private static final MaterializedResult MISMATCH_SCHEMA_PRIMITIVE_FIELDS_DATA_BEFORE =
@@ -369,7 +369,7 @@ public abstract class AbstractTestHive
                     .build();
 
     private static final MaterializedResult MISMATCH_SCHEMA_TABLE_DATA_BEFORE =
-            MaterializedResult.resultBuilder(SESSION, MISMATCH_SCHEMA_TABLE_BEFORE.stream().map(ColumnMetadata::getType).collect(toList()))
+            MaterializedResult.resultBuilder(SESSION, MISMATCH_SCHEMA_TABLE_BEFORE.stream().map(ColumnMetadata::getType).collect(toImmutableList()))
                     .rows(MISMATCH_SCHEMA_PRIMITIVE_FIELDS_DATA_BEFORE.getMaterializedRows()
                             .stream()
                             .map(materializedRow -> {
@@ -380,7 +380,7 @@ public abstract class AbstractTestHive
                                 result.add(ImmutableMap.of(rowResult.get(1), rowResult));
                                 result.add(rowResult.get(9));
                                 return new MaterializedRow(materializedRow.getPrecision(), result);
-                            }).collect(toList()))
+                            }).collect(toImmutableList()))
                     .build();
 
     private static final List<ColumnMetadata> MISMATCH_SCHEMA_PRIMITIVE_COLUMN_AFTER = ImmutableList.<ColumnMetadata>builder()
@@ -419,7 +419,7 @@ public abstract class AbstractTestHive
                     .build();
 
     private static final MaterializedResult MISMATCH_SCHEMA_TABLE_DATA_AFTER =
-            MaterializedResult.resultBuilder(SESSION, MISMATCH_SCHEMA_TABLE_AFTER.stream().map(ColumnMetadata::getType).collect(toList()))
+            MaterializedResult.resultBuilder(SESSION, MISMATCH_SCHEMA_TABLE_AFTER.stream().map(ColumnMetadata::getType).collect(toImmutableList()))
                     .rows(MISMATCH_SCHEMA_PRIMITIVE_FIELDS_DATA_AFTER.getMaterializedRows()
                             .stream()
                             .map(materializedRow -> {
@@ -432,7 +432,7 @@ public abstract class AbstractTestHive
                                 result.add(ImmutableMap.of(result.get(1), dropFieldRowResult));
                                 result.add(result.get(9));
                                 return new MaterializedRow(materializedRow.getPrecision(), result);
-                            }).collect(toList()))
+                            }).collect(toImmutableList()))
                     .build();
 
     protected Set<HiveStorageFormat> createTableFormats = difference(
@@ -3079,12 +3079,12 @@ public abstract class AbstractTestHive
             ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(session, getTableHandle(metadata, tableName));
 
             List<ColumnMetadata> expectedColumns = createTableColumns.stream()
-                    .map(column -> new ColumnMetadata(
-                            column.getName(),
-                            column.getType(),
-                            column.getComment(),
-                            columnExtraInfo(partitionedBy.contains(column.getName())),
-                            false))
+                    .map(column -> ColumnMetadata.builder()
+                            .setName(column.getName())
+                            .setType(column.getType())
+                            .setComment(Optional.ofNullable(column.getComment()))
+                            .setExtraInfo(Optional.ofNullable(columnExtraInfo(partitionedBy.contains(column.getName()))))
+                            .build())
                     .collect(toList());
             assertEquals(filterNonHiddenColumnMetadata(tableMetadata.getColumns()), expectedColumns);
 
@@ -3445,7 +3445,7 @@ public abstract class AbstractTestHive
                     .orElseThrow(() -> new AssertionError("Table does not exist: " + tableName));
             assertEqualsIgnoreOrder(partitionNames, CREATE_TABLE_PARTITIONED_DATA.getMaterializedRows().stream()
                     .map(row -> "ds=" + row.getField(CREATE_TABLE_PARTITIONED_DATA.getTypes().size() - 1))
-                    .collect(toList()));
+                    .collect(toImmutableList()));
 
             // verify the node versions in partitions
             Map<String, Optional<Partition>> partitions = getMetastoreClient().getPartitionsByNames(identity, tableName.getSchemaName(), tableName.getTableName(), partitionNames);
@@ -3567,7 +3567,7 @@ public abstract class AbstractTestHive
                         .orElseThrow(() -> new AssertionError("Table does not exist: " + tableName));
                 assertEqualsIgnoreOrder(partitionNames, CREATE_TABLE_PARTITIONED_DATA.getMaterializedRows().stream()
                         .map(row -> "ds=" + row.getField(CREATE_TABLE_PARTITIONED_DATA.getTypes().size() - 1))
-                        .collect(toList()));
+                        .collect(toImmutableList()));
 
                 // load the new table
                 List<ColumnHandle> columnHandles = filterNonHiddenColumnHandles(metadata.getColumnHandles(session, tableHandle).values());
@@ -3795,7 +3795,7 @@ public abstract class AbstractTestHive
                     .orElseThrow(() -> new AssertionError("Table does not exist: " + tableName));
             assertEqualsIgnoreOrder(partitionNames, CREATE_TABLE_PARTITIONED_DATA.getMaterializedRows().stream()
                     .map(row -> "ds=" + row.getField(CREATE_TABLE_PARTITIONED_DATA.getTypes().size() - 1))
-                    .collect(toList()));
+                    .collect(toImmutableList()));
 
             // verify table directory is not empty
             Set<String> filesAfterInsert = listAllDataFiles(transaction, tableName.getSchemaName(), tableName.getTableName());
@@ -4678,7 +4678,7 @@ public abstract class AbstractTestHive
                     expectedData.getMaterializedRows().stream()
                             .map(row -> format("pk1=%s/pk2=%s", row.getField(1), row.getField(2)))
                             .distinct()
-                            .collect(toList()));
+                            .collect(toImmutableList()));
 
             // load the new table
             ConnectorSession session = newSession();

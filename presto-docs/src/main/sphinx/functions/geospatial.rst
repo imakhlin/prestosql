@@ -379,6 +379,16 @@ Accessors
 
     Returns the cardinality of the collection of interior rings of a polygon.
 
+.. function:: line_interpolate_point(LineString, double) -> double
+
+    Returns a Point interpolated along a LineString at the fraction given. The fraction
+    must be between 0 and 1, inclusive.
+
+.. function:: line_interpolate_points(LineString, double, repeated) -> double
+
+    Returns an array of Points interpolated along a LineString. The fraction must be
+    between 0 and 1, inclusive.
+
 .. function:: line_locate_point(LineString, Point) -> double
 
     Returns a float between 0 and 1 representing the location of the closest point on
@@ -456,3 +466,17 @@ These functions convert between geometries and
 
     Returns the minimum set of Bing tiles that fully covers a given geometry at
     a given zoom level. Zoom levels from 1 to 23 are supported.
+
+Encoded Polylines
+-----------------
+
+These functions convert between geometries and
+`encoded polylines <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`_.
+
+.. function:: to_encoded_polyline(Geometry) -> varchar
+
+    Encodes a linestring or multipoint to a polyline.
+
+.. function:: from_encoded_polyline(varchar) -> Geometry
+
+    Decodes a polyline to a linestring.

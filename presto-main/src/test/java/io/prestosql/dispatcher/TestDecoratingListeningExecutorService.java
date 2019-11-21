@@ -11,22 +11,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.prestosql.sql.parser;
+package io.prestosql.dispatcher;
 
-public enum IdentifierSymbol
+import com.google.common.util.concurrent.ListeningExecutorService;
+import org.testng.annotations.Test;
+
+import static io.prestosql.spi.testing.InterfaceTestUtils.assertAllMethodsOverridden;
+
+public class TestDecoratingListeningExecutorService
 {
-    COLON(':'),
-    AT_SIGN('@');
-
-    private final char symbol;
-
-    IdentifierSymbol(char symbol)
+    @Test
+    public void testAllMethodsOverridden()
     {
-        this.symbol = symbol;
-    }
-
-    public char getSymbol()
-    {
-        return symbol;
+        assertAllMethodsOverridden(ListeningExecutorService.class, DecoratingListeningExecutorService.class);
     }
 }

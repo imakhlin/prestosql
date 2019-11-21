@@ -254,7 +254,12 @@ public class BaseJdbcClient
                 // skip unsupported column types
                 if (columnMapping.isPresent()) {
                     boolean nullable = (resultSet.getInt("NULLABLE") != columnNoNulls);
-                    columns.add(new JdbcColumnHandle(columnName, typeHandle, columnMapping.get().getType(), nullable));
+                    columns.add(JdbcColumnHandle.builder()
+                            .setColumnName(columnName)
+                            .setJdbcTypeHandle(typeHandle)
+                            .setColumnType(columnMapping.get().getType())
+                            .setNullable(nullable)
+                            .build());
                 }
             }
             if (columns.isEmpty()) {
@@ -524,7 +529,10 @@ public class BaseJdbcClient
     {
         String temporaryTable = quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTemporaryTableName());
         String targetTable = quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTableName());
-        String insertSql = format("INSERT INTO %s SELECT * FROM %s", targetTable, temporaryTable);
+        String columnNames = handle.getColumnNames().stream()
+                .map(this::quoted)
+                .collect(joining(", "));
+        String insertSql = format("INSERT INTO %s (%s) SELECT * FROM %s", targetTable, columnNames, temporaryTable);
         String cleanupSql = "DROP TABLE " + temporaryTable;
 
         try (Connection connection = getConnection(identity, handle)) {

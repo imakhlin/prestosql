@@ -15,7 +15,7 @@ package io.prestosql.tests;
 
 import com.google.common.collect.ImmutableList;
 import io.prestosql.metadata.BoundVariables;
-import io.prestosql.metadata.FunctionKind;
+import io.prestosql.metadata.FunctionArgumentDefinition;
 import io.prestosql.metadata.FunctionMetadata;
 import io.prestosql.metadata.Metadata;
 import io.prestosql.metadata.Signature;
@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkState;
+import static io.prestosql.metadata.FunctionKind.SCALAR;
 import static io.prestosql.metadata.Signature.typeVariable;
 import static io.prestosql.operator.scalar.ScalarFunctionImplementation.ArgumentProperty.valueTypeArgumentProperty;
 import static io.prestosql.operator.scalar.ScalarFunctionImplementation.NullConvention.RETURN_NULL_ON_NULL;
@@ -46,15 +47,21 @@ public class StatefulSleepingSum
         super(new FunctionMetadata(
                 new Signature(
                         "stateful_sleeping_sum",
-                        FunctionKind.SCALAR,
                         ImmutableList.of(typeVariable("bigint")),
                         ImmutableList.of(),
                         BIGINT.getTypeSignature(),
                         ImmutableList.of(DOUBLE.getTypeSignature(), BIGINT.getTypeSignature(), BIGINT.getTypeSignature(), BIGINT.getTypeSignature()),
                         false),
+                false,
+                ImmutableList.of(
+                        new FunctionArgumentDefinition(false),
+                        new FunctionArgumentDefinition(false),
+                        new FunctionArgumentDefinition(false),
+                        new FunctionArgumentDefinition(false)),
                 true,
                 true,
-                "testing not thread safe function"));
+                "testing not thread safe function",
+                SCALAR));
     }
 
     @Override

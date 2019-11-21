@@ -65,6 +65,7 @@ import static io.prestosql.testing.TestingAccessControlManager.TestingPrivilegeT
 import static io.prestosql.testing.TestingAccessControlManager.TestingPrivilegeType.DELETE_TABLE;
 import static io.prestosql.testing.TestingAccessControlManager.TestingPrivilegeType.INSERT_TABLE;
 import static io.prestosql.testing.TestingAccessControlManager.TestingPrivilegeType.SELECT_COLUMN;
+import static io.prestosql.testing.TestingAccessControlManager.TestingPrivilegeType.SHOW_COLUMNS;
 import static io.prestosql.testing.TestingAccessControlManager.privilege;
 import static io.prestosql.testing.TestingSession.TESTING_CATALOG;
 import static io.prestosql.testing.TestngUtils.toDataProvider;
@@ -1033,6 +1034,44 @@ public abstract class AbstractTestQueries
         assertQuery("SELECT name FROM (SELECT * FROM region ORDER BY name DESC LIMIT 2)", "VALUES 'MIDDLE EAST', 'EUROPE'");
         assertQuery("SELECT y FROM (SELECT r.* AS (x, y, z) FROM region r ORDER BY name DESC LIMIT 2)", "VALUES 'MIDDLE EAST', 'EUROPE'");
         assertQuery("SELECT y FROM (SELECT r.* AS (x, y, z) FROM region r ORDER BY y DESC LIMIT 2)", "VALUES 'MIDDLE EAST', 'EUROPE'");
+    }
+
+    @Test
+    public void testSelectAllFromOuterScopeTable()
+        // scalar subquery
+        assertQuery(
+                "SELECT (SELECT t.* FROM (VALUES 1)) FROM (SELECT name FROM nation) t(a)",
+                "SELECT name FROM nation");
+        assertQueryOrdered(
+                "SELECT (SELECT t.* FROM (VALUES 1)) FROM (SELECT name FROM nation ORDER BY regionkey, name LIMIT 5) t(a)",
+                "SELECT name FROM nation ORDER BY regionkey, name LIMIT 5");
+        assertQueryFails(
+                "SELECT (SELECT t.* FROM (VALUES 1)) FROM (SELECT name, regionkey FROM nation) t(a, b)",
+                ".* Multiple columns returned by subquery are not yet supported. Found 2");
+        // alias/table name shadowing
+        assertQuery("SELECT(SELECT region.* FROM (VALUES 1) region) FROM region", "SELECT 1 FROM region");
+        assertQuery("SELECT(SELECT r.* FROM (VALUES 1) r) FROM region r", "SELECT 1 FROM region");
+
+        // EXISTS subquery
+        assertQuery("SELECT EXISTS(SELECT t.* FROM region) FROM nation t", "SELECT true FROM nation");
+        assertQuery("SELECT EXISTS(SELECT t.* FROM region WHERE region.name = 'ASIA') FROM nation t", "SELECT true FROM nation");
+        assertQuery("SELECT EXISTS(SELECT t.* FROM region WHERE region.name = 'NO_NAME') FROM nation t", "SELECT false FROM nation");
+        assertQuery("SELECT EXISTS(SELECT t.* FROM region WHERE region.name = 'ASIA' AND t.name = 'CHINA') FROM nation t", "SELECT name = 'CHINA' FROM nation");
+
+        // lateral relation
+        assertQuery("SELECT * FROM region r, LATERAL (SELECT r.*)", "SELECT *, * FROM region");
+        assertQuery("SELECT * FROM region r, LATERAL (SELECT r.* LIMIT 2)", "SELECT *, * FROM region");
+        assertQuery("SELECT r.name, t.a FROM region r, LATERAL (SELECT r.* LIMIT 2) t(a, b, c)", "SELECT name, regionkey FROM region");
+        assertQueryFails("SELECT * FROM region r, LATERAL (SELECT r.* LIMIT 0)", UNSUPPORTED_CORRELATED_SUBQUERY_ERROR_MSG);
+        assertQuery("SELECT * FROM region r, LATERAL (SELECT r.* WHERE true)", "SELECT *, * FROM region");
+        assertQuery("SELECT region.* FROM region, LATERAL (SELECT region.*) region", "SELECT *, * FROM region");
+        assertQueryFails("SELECT * FROM region r, LATERAL (SELECT r.* WHERE false)", UNSUPPORTED_CORRELATED_SUBQUERY_ERROR_MSG);
+        assertQueryFails("SELECT * FROM region r, LATERAL (SELECT r.* WHERE r.name = 'ASIA')", UNSUPPORTED_CORRELATED_SUBQUERY_ERROR_MSG);
+
+        // reference to further outer scope relation
+        assertQuery("SELECT * FROM region r, LATERAL (SELECT t.* from (VALUES 1) t, LATERAL (SELECT r.*))", "SELECT *, 1 FROM region");
+        assertQuery("SELECT * FROM region r, LATERAL (SELECT t2.* from (VALUES 1) t, LATERAL (SELECT r.*) t2(a, b, c))", "SELECT *, * FROM region");
+        assertQuery("SELECT * FROM region r, LATERAL (SELECT t2.a from (VALUES 1) t, LATERAL (SELECT r.*) t2(a, b, c))", "SELECT *, regionkey FROM region");
     }
 
     @Test
@@ -4660,6 +4699,8 @@ public abstract class AbstractTestQueries
         assertAccessAllowed("SELECT name AS my_alias FROM nation", privilege("my_alias", SELECT_COLUMN));
         assertAccessAllowed("SELECT my_alias from (SELECT name AS my_alias FROM nation)", privilege("my_alias", SELECT_COLUMN));
         assertAccessDenied("SELECT name AS my_alias FROM nation", "Cannot select from columns \\[name\\] in table .*.nation.*", privilege("name", SELECT_COLUMN));
+        assertAccessDenied("SHOW CREATE TABLE orders", "Cannot show columns of table .*.orders.*", privilege("orders", SHOW_COLUMNS));
+        assertAccessAllowed("SHOW CREATE TABLE lineitem", privilege("orders", SHOW_COLUMNS));
     }
 
     @Test
@@ -5253,12 +5294,13 @@ public abstract class AbstractTestQueries
         assertQuery(
                 "SELECT r.name, a FROM region r RIGHT JOIN LATERAL (SELECT name FROM nation WHERE r.regionkey = nation.regionkey) n(a) ON r.name > a ORDER BY a LIMIT 1",
                 "SELECT NULL, 'ALGERIA'");
-        assertQuery(
+        // FULL correlated join with non-trivial correlation filter and non-trivial join condition currently not supported
+        assertQueryFails(
                 "SELECT * FROM (VALUES 1) a(x) FULL JOIN LATERAL(SELECT y FROM (VALUES 2) b(y) WHERE y > x) ON x=y",
-                "VALUES (1, NULL), (NULL, 2)");
-        assertQuery(
+                UNSUPPORTED_CORRELATED_SUBQUERY_ERROR_MSG /*"VALUES (1, NULL), (NULL, 2)"*/);
+        assertQueryFails(
                 "SELECT * FROM (VALUES 1, 2, 3) a(x) FULL JOIN LATERAL(SELECT z FROM (VALUES 1, 2, 3, 5) b(z) WHERE z != x) ON x != 1 AND z != 5",
-                "VALUES (1, NULL), (2, 3), (2, 1), (3, 2), (3, 1), (NULL, 5)");
+                UNSUPPORTED_CORRELATED_SUBQUERY_ERROR_MSG /*"VALUES (1, NULL), (2, 3), (2, 1), (3, 2), (3, 1), (NULL, 5)"*/);
         assertQuery(
                 "SELECT * FROM (VALUES 1, 2) a(x) JOIN LATERAL(SELECT y FROM (VALUES 2, 3) b(y) WHERE y > x) c(z) ON z > 2*x",
                 "VALUES (1, 3)");
