@@ -479,10 +479,6 @@ public class IcebergMetadata
                             .setType(toPrestoType(column.type(), typeManager))
                             .setComment(Optional.ofNullable(column.doc()))
                             .build();
-                    if (column.doc() != null) {
-                        return new ColumnMetadata(column.name(), toPrestoType(column.type(), typeManager), column.doc());
-                    }
-                    return new ColumnMetadata(column.name(), toPrestoType(column.type(), typeManager));
                 })
                 .collect(toImmutableList());
     }

@@ -1945,7 +1945,7 @@ class StatementAnalyzer
                                 selectExpressionBuilder,
                                 relationType,
                                 local);
-                        analyzeAllColumnsFromTable(fields, allColumns, node, scope, outputExpressionBuilder, selectExpressionBuilder, relationType);
+                        analyzeAllColumnsFromTable(fields, allColumns, node, scope, outputExpressionBuilder, selectExpressionBuilder, relationType, true);
                         return;
                     }
                 }

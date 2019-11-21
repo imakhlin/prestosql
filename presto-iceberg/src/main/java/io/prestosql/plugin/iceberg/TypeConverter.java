@@ -288,7 +288,6 @@ public final class TypeConverter
                     fieldNames.build(),
                     type.getTypeParameters().stream()
                             .map(TypeConverter::toHiveTypeInfo)
-                            .map(TypeConveter::toHiveTypeInfo)
                             .collect(toList()));
         }
         throw new PrestoException(NOT_SUPPORTED, format("Unsupported Hive type: %s", type));

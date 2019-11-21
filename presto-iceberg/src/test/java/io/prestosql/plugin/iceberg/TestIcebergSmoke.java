@@ -212,17 +212,6 @@ public class TestIcebergSmoke
         dropTable(session, "test_column_comments");
     }
 
-    @Test
-    {
-        Session session = getSession();
-        assertUpdate(session, "CREATE TABLE test_column_comments (_bigint BIGINT COMMENT 'test column comment')");
-
-        assertQuery(session, "SHOW COLUMNS FROM test_column_comments",
-                "VALUES ('_bigint', 'bigint', '', 'test column comment')");
-
-        dropTable(session, "test_column_comments");
-    }
-
     private void testWithAllFileFormats(BiConsumer<Session, FileFormat> test)
     {
         test.accept(getSession(), FileFormat.PARQUET);

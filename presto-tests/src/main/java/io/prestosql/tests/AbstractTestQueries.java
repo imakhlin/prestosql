@@ -1038,6 +1038,7 @@ public abstract class AbstractTestQueries
 
     @Test
     public void testSelectAllFromOuterScopeTable()
+    {
         // scalar subquery
         assertQuery(
                 "SELECT (SELECT t.* FROM (VALUES 1)) FROM (SELECT name FROM nation) t(a)",
