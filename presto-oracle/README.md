@@ -30,7 +30,7 @@ The latest Oracle JDBC Driver is included with this package from Maven
 ## Issues
 - user SYNONYMS work, but synonyms through a grant do not
 - BLOB support `failed: Invalid column type: getString/getNString not implemented for class oracle.jdbc.driver.T4CBlobAccessor`
-- INSERT support `com.facebook.presto.spi.PrestoException: ORA-00972: identifier is too long` 
+- INSERT support `io.prestosql.spi.PrestoException: ORA-00972: identifier is too long` 
 - UNBOUNDED VARCHAR
 
 ### Future
