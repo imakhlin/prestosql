@@ -920,7 +920,7 @@
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
-                    <artifactId>aws-java-sdk-kinesis</artifactId>
+                <artifactId>aws-java-sdk-kinesis</artifactId>
                 <version>${dep.aws-sdk.version}</version>
                 <exclusions>
                     <exclusion>
@@ -1343,6 +1343,18 @@
                 <artifactId>presto-maven-plugin</artifactId>
                 <version>8</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <!-- Allow Oracle JDBC driver and its dependencies to be provided only at runtime -->
+                    <allowedProvidedDependencies>
+                        <allowedProvidedDependency>com.oracle.ojdbc:ojdbc8</allowedProvidedDependency>
+                        <allowedProvidedDependency>com.oracle.ojdbc:ucp</allowedProvidedDependency>
+                        <allowedProvidedDependency>com.oracle.ojdbc:oraclepki</allowedProvidedDependency>
+                        <allowedProvidedDependency>com.oracle.ojdbc:osdt_cert</allowedProvidedDependency>
+                        <allowedProvidedDependency>com.oracle.ojdbc:osdt_core</allowedProvidedDependency>
+                        <allowedProvidedDependency>com.oracle.ojdbc:simplefan</allowedProvidedDependency>
+                        <allowedProvidedDependency>com.oracle.ojdbc:ons</allowedProvidedDependency>
+                    </allowedProvidedDependencies>
+                </configuration>
             </plugin>
 
             <plugin>
