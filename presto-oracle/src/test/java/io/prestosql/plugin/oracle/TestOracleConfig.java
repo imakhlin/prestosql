@@ -45,7 +45,8 @@ public class TestOracleConfig
                 .setRowPrefetch(50)
                 .setAutoReconnect(false)
                 .setConnectionTimeout(new Duration(30, TimeUnit.SECONDS))
-                .setMaxReconnects(6));
+                .setMaxReconnects(6)
+                .setTimezoneAsRegion(false));
     }
 
     @Test
@@ -88,6 +89,7 @@ public class TestOracleConfig
                 .put("oracle.number.default-scale.double", "6")
                 .put("oracle.row-prefetch", "30")
                 .put("oracle.number.exceeds-limits", "IGNORE")
+                .put("oracle.jdbc.timezoneAsRegion", "true")
                 .build();
 
         OracleConfig expected = new OracleConfig()
@@ -104,7 +106,8 @@ public class TestOracleConfig
                 .setConnectionTimeout(new Duration(11, TimeUnit.SECONDS))
                 .setMaxReconnects(5)
                 .setRowPrefetch(30)
-                .setNumberExceedsLimitsMode("IGNORE");
+                .setNumberExceedsLimitsMode("IGNORE")
+                .setTimezoneAsRegion(true);
 
         assertFullMapping(properties, expected);
     }

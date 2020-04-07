@@ -140,58 +140,6 @@ public class OracleClient
         return schemaSynonyms.build();
     }
 
-    /*
-    todo implement for full-synonym-support
-    @Override
-    public List<SchemaTableName> getTableNames(JdbcIdentity identity, Optional<String> schema)
-    {
-        try (Connection connection = connectionFactory.openConnection(identity)) {
-            Optional<String> remoteSchema = schema.map(schemaName -> toRemoteSchemaName(identity, connection, schemaName));
-            try (ResultSet resultSet = getTables(connection, remoteSchema, Optional.empty())) {
-                ImmutableList.Builder<SchemaTableName> list = ImmutableList.builder();
-                while (resultSet.next()) {
-                    String tableSchema = getTableSchemaName(resultSet);
-                    String tableName = resultSet.getString("TABLE_NAME");
-                    list.add(new SchemaTableName(tableSchema, tableName));
-                }
-                return list.build();
-            }
-        }
-        catch (SQLException e) {
-            throw new PrestoException(JDBC_ERROR, e);
-        }
-    }
-
-    @Override
-    public Optional<JdbcTableHandle> getTableHandle(JdbcIdentity identity, SchemaTableName schemaTableName)
-    {
-        try (Connection connection = connectionFactory.openConnection(identity)) {
-            String remoteSchema = toRemoteSchemaName(identity, connection, schemaTableName.getSchemaName());
-            String remoteTable = toRemoteTableName(identity, connection, remoteSchema, schemaTableName.getTableName());
-            try (ResultSet resultSet = getTables(connection, Optional.of(remoteSchema), Optional.of(remoteTable))) {
-                List<JdbcTableHandle> tableHandles = new ArrayList<>();
-                while (resultSet.next()) {
-                    tableHandles.add(new JdbcTableHandle(
-                            schemaTableName,
-                            resultSet.getString("TABLE_CAT"),
-                            resultSet.getString("TABLE_SCHEM"),
-                            resultSet.getString("TABLE_NAME")));
-                }
-                if (tableHandles.isEmpty()) {
-                    return Optional.empty();
-                }
-                if (tableHandles.size() > 1) {
-                    throw new PrestoException(NOT_SUPPORTED, "Multiple tables matched: " + schemaTableName);
-                }
-                return Optional.of(getOnlyElement(tableHandles));
-            }
-        }
-        catch (SQLException e) {
-            throw new PrestoException(JDBC_ERROR, e);
-        }
-    }
-     */
-
     @Override
     /**
      * Retrieve information about tables/views using the JDBC Drivers DatabaseMetaData api,
@@ -268,6 +216,7 @@ public class OracleClient
      * Deals with NUMERIC types intelligently to avoid overflows, and handles Oracle special cases.
      *
      * @param session
+     * @param connection
      * @param typeHandle
      * @return
      */

@@ -47,6 +47,7 @@ public class OracleConfig
     private boolean autoReconnect;
     private Duration connectionTimeout = new Duration(30, TimeUnit.SECONDS);
     private int maxReconnects = 6;
+    private boolean timezoneAsRegion; // Fix ORA-01882: timezone region not found; Set default to "false"
 
     public boolean isSynonymsEnabled()
     {
@@ -66,6 +67,23 @@ public class OracleConfig
     public int getRowPrefetch()
     {
         return rowPrefetch;
+    }
+
+    public boolean isTimezoneAsRegion()
+    {
+        return timezoneAsRegion;
+    }
+
+    /**
+     * Handle timezone as region.
+     *
+     * @param enabled - default is "false"
+     */
+    @Config("oracle.jdbc.timezoneAsRegion")
+    public OracleConfig setTimezoneAsRegion(boolean enabled)
+    {
+        timezoneAsRegion = enabled;
+        return this;
     }
 
     /**

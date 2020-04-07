@@ -48,10 +48,7 @@ public class OracleModule
         Properties connectionProperties = new Properties();
         connectionProperties.setProperty("includeSynonyms", String.valueOf(oracleConfig.isSynonymsEnabled()));
         connectionProperties.setProperty("defaultRowPrefetch", String.valueOf(oracleConfig.getRowPrefetch()));
-
-        // TODO: consider make this configurable
-        // Fix ORA-01882: timezone region not found
-        connectionProperties.setProperty("oracle.jdbc.timezoneAsRegion", "false");
+        connectionProperties.setProperty("oracle.jdbc.timezoneAsRegion", String.valueOf(oracleConfig.isTimezoneAsRegion()));
 
         return new DriverConnectionFactory(
                 new OracleDriver(),

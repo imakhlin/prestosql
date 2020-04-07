@@ -1,7 +1,7 @@
 # Presto Oracle
 A Presto Oracle Driver that offers commercial grade features, performance and customization.
 
-For `PrestoSQL` updated to verision `0.325`
+For `PrestoSQL` updated to version `323`
 
 ## TODO
 - CI/CD with Github
@@ -11,6 +11,8 @@ For `PrestoSQL` updated to verision `0.325`
 ## Author
 - Ben DeMott (Arrow Electronics)
 - ben.demott@gmail.com
+- Igor Makhlin (Iguazio)
+- igorm@iguazio.com
 
 ## Features
 This driver features several **Oracle** specific enhancements and compatibilities to make integration more seamless.
@@ -103,12 +105,29 @@ oracle.connection-timeout=10
 oracle.max-reconnects=3
 ```
 
-### Default NUMBER as `DECIMAL` with Rounding
+### Default `NUMBER` as `DECIMAL` with predefined scale
+In this configuration all `NUMBER` types will be converted to `DECIMAL` with scale `6`, and `NUMBER` types too large for Presto will be rounded using `HALF_EVEN`.
+
+```properties
+connector.name=oracle
+connection-url=jdbc:oracle:thin:@localhost:1521:XE
+connection-user=username
+connection-password=password
+unsupported-type.handling-strategy=VARCHAR
+oracle.synonyms.enabled=true
+oracle.number.default-type=DECIMAL
+oracle.number.zero-scale-type=DECIMAL
+oracle.number.default-scale.decimal=6
+oracle.number.exceeds-limits=ROUND
+oracle.number.round-mode=HALF_EVEN
+```
+
+### Default `NUMBER` as `DECIMAL` with Rounding
 In this configuration all `NUMBER` types will be converted to `DECIMAL`, and `NUMBER` types too large for Presto will be rounded using `HALF_EVEN`.
 
 ```properties
 connector.name=oracle
-connection-url=jdbc=oracle=thin=@example.domain.com=1522=sid
+connection-url=jdbc:oracle:thin:@localhost:1521:XE
 connection-user=username
 connection-password=password
 unsupported-type.handling-strategy=VARCHAR
@@ -120,15 +139,15 @@ oracle.number.default-scale.ratio=0.3
 oracle.number.round-mode=HALF_EVEN
 ```
 
-### Default NUMBER as `VARCHAR`
+### Default `NUMBER` as `VARCHAR`
 In this configuration we treat all Oracle `NUMBER` types as strings to preserve their accuracy.
 
-When a NUMBER is encountered it will be converted 
+When a `NUMBER` is encountered it will be converted 
 
 Except for `NUMBER` columns with a scale defined as zero (`0`) are converted to `INTEGER`.
 ```properties
 connector.name=oracle
-connection-url=jdbc=oracle=thin=@example.domain.com=1522=sid
+connection-url=jdbc:oracle:thin:@localhost:1521:XE
 connection-user=username
 connection-password=password
 unsupported-type.handling-strategy=VARCHAR
